@@ -2,6 +2,8 @@ package domain
 
 import "time"
 
+const UserIDKey = "user_id"
+
 type User struct {
 	ID           string    `json:"id"`
 	Email        string    `json:"name"`

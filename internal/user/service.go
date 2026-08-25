@@ -14,6 +14,7 @@ import (
 type Service interface {
 	Register(ctx context.Context, req RegisterRequest) (*UserResponse, error)
 	Login(ctx context.Context, req LoginRequest) (*LoginResponse, error)
+	GetByID(ctx context.Context, id string) (*UserResponse, error)
 }
 
 type userService struct {
@@ -103,5 +104,22 @@ func (s *userService) Login(ctx context.Context, req LoginRequest) (*LoginRespon
 			AvatarURL:   u.AvatarURL,
 			CreatedAt:   u.CreatedAt.Format("2006-01-02 15:04:05"),
 		},
+	}, nil
+}
+
+func (s *userService) GetByID(ctx context.Context, id string) (*UserResponse, error) {
+	u, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+	return &UserResponse{
+		ID:          u.ID,
+		Email:       u.Email,
+		DisplayName: u.DispalyName,
+		AvatarURL:   u.AvatarURL,
+		CreatedAt:   u.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }

@@ -58,3 +58,37 @@ func (h *Handler) Login(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, res)
 }
+
+func (h *Handler) GetByID(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "id is required"})
+	}
+	res, err := h.service.GetByID(c.Request().Context(), id)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *Handler) GetMe(c echo.Context) error {
+	userID, ok := c.Get("user_id").(string)
+	if !ok || userID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "user_id is required"})
+	}
+
+	res, err := h.service.GetByID(c.Request().Context(), userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, res)
+
+}
