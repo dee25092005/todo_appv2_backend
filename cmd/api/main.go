@@ -5,6 +5,7 @@ import (
 	"todo-backend/config"
 	"todo-backend/internal/database"
 	"todo-backend/internal/http"
+	"todo-backend/internal/task"
 	"todo-backend/internal/user"
 
 	"github.com/labstack/echo/v4"
@@ -25,12 +26,15 @@ func main() {
 
 	//repo
 	userRepo := user.NewRepository(dbPool)
+	taskRepo := task.NewRepository(dbPool)
 
 	//service
 	userService := user.NewService(userRepo, cfg.JWTSecret)
+	taskService := task.NewService(taskRepo)
 
 	//handler
 	userHandler := user.NewHandler(userService)
+	taskHandler := task.NewHandler(taskService)
 
 	e := echo.New()
 
@@ -38,6 +42,8 @@ func main() {
 		e,
 		dbPool,
 		userHandler,
+		taskHandler,
+		cfg.JWTSecret,
 	)
 
 	log.Printf("Server is running on port %s", cfg.Port)

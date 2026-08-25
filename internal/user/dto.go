@@ -8,8 +8,8 @@ import (
 
 type RegisterRequest struct {
 	Email       string `json:"email" validate:"required,email"`
-	Password    string `json:"password" validate:"required,min=6"`
-	DisplayName string `json:"display_name" validate:"required"`
+	Password    string `json:"password" validate:"required,min=6,max=72"`
+	DisplayName string `json:"display_name" validate:"required,min=2,max=32"`
 }
 
 type LoginRequest struct {
