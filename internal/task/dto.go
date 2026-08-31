@@ -16,6 +16,10 @@ func (p *PagingationQuery) SetDefault() {
 	}
 }
 
+type UpdateTaskStatusRequest struct {
+	IsCompleted bool `json:"is_completed"`
+}
+
 type CreateTaskRequest struct {
 	Title    string     `json:"title" validate:"required,min=1,max=255"`
 	Note     *string    `json:"note"`
@@ -48,4 +52,19 @@ type PaginatedTaskResponse struct {
 	Page       int             `json:"page"`
 	Limit      int             `json:"limit"`
 	TotalPages int             `json:"total_pages"`
+}
+
+type SearchTaskQuery struct {
+	Q     string `query:"q" validate:"required,min=1"`
+	Page  int    `query:"page" validate:"omitempty,min=1"`
+	Limit int    `query:"limit" validate:"omitempty,min=1,max=100"`
+}
+
+func (p *SearchTaskQuery) SetDefault() {
+	if p.Page < 1 {
+		p.Page = 1
+	}
+	if p.Limit < 1 {
+		p.Limit = 10
+	}
 }
