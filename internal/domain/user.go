@@ -6,7 +6,7 @@ const UserIDKey = "user_id"
 
 type User struct {
 	ID           string    `json:"id"`
-	Email        string    `json:"name"`
+	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	DispalyName  string    `json:"display_name"`
 	AvatarURL    string    `json:"avatar_url"`

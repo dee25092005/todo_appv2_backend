@@ -18,9 +18,10 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token     string       `json:"token"`
-	ExpiresAt time.Time    `json:"expires_at"`
-	User      UserResponse `json:"user"`
+	AcessToken   string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token"`
+	ExpiresAt    time.Time    `json:"expires_at"`
+	User         UserResponse `json:"user"`
 }
 
 type AuthResponse struct {
@@ -41,4 +42,18 @@ type JWTCustomClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
 	jwt.RegisteredClaims
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type UpdateProfileReqest struct {
+	DisplayName string `json:"display_name" validate:"required,min=2"`
+	AvatarURL   string `json:"avatar_url" validate:"omitempty,url"`
+}
+
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" validate:"required,min=6,max=72"`
+	NewPassword string `json:"new_password" validate:"required,min=6,max=72"`
 }

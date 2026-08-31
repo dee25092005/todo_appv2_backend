@@ -14,6 +14,8 @@ type Repository interface {
 	Create(ctx context.Context, u *domain.User) error
 	FindByEmail(ctx context.Context, email string) (*domain.User, error)
 	FindByID(ctx context.Context, id string) (*domain.User, error)
+	UpdateProfile(ctx context.Context, id, displayName, avatarURL string) error
+	UpdatePassword(ctx context.Context, id string, passwordHash string) error
 }
 
 type postgresRepository struct {
@@ -129,4 +131,37 @@ func (r *postgresRepository) FindByID(ctx context.Context, id string) (*domain.U
 	}
 
 	return &u, nil
+}
+
+func (r *postgresRepository) UpdateProfile(ctx context.Context, id, displayName, avatarURL string) error {
+	query := `
+		UPDATE users
+		SET display_name = $1, avatar_url = $2, updated_at = NOW()
+		WHERE id = $3
+	`
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		displayName,
+		avatarURL,
+		id,
+	)
+
+	return err
+}
+
+func (r *postgresRepository) UpdatePassword(ctx context.Context, id string, passwordHash string) error {
+	query := `
+		UPDATE users
+		SET password_hash = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		passwordHash,
+		id,
+	)
+
+	return err
 }
