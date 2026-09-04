@@ -39,7 +39,7 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 	slog.Error("unhandled error",
 		slog.String("path", c.Path()),
 		slog.String("method", c.Request().Method),
-		slog.Any("error", appErr.Err),
+		slog.Any("error", err),
 	)
 	_ = c.JSON(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
 

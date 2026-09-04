@@ -10,6 +10,7 @@ import (
 	"todo-backend/pkg/utils"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -25,16 +26,22 @@ type Service interface {
 	UpdateProfile(ctx context.Context, userID string, req UpdateProfileReqest) (*UserResponse, error)
 }
 
+type DB interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+}
+
 type userService struct {
 	repo      Repository
 	session   session.SessionRepository
+	db        DB
 	jwtSecret []byte
 }
 
-func NewService(repo Repository, session session.SessionRepository, jwtSecret string) Service {
+func NewService(repo Repository, session session.SessionRepository, db DB, jwtSecret string) Service {
 	return &userService{
 		repo:      repo,
 		session:   session,
+		db:        db,
 		jwtSecret: []byte(jwtSecret),
 	}
 }

@@ -45,7 +45,7 @@ func main() {
 	sessionRepo := session.NewSessionRepository(dbPool)
 
 	//service
-	userService := user.NewService(userRepo, sessionRepo, cfg.JWTSecret)
+	userService := user.NewService(userRepo, sessionRepo, dbPool, cfg.JWTSecret)
 	taskService := task.NewService(taskRepo, storage)
 
 	//handler

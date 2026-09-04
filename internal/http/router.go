@@ -58,9 +58,12 @@ func NewRouter(
 	//tasks
 	protected.POST("/tasks", taskHandler.Create)
 	protected.GET("/tasks", taskHandler.List)
+	protected.GET("/tasks/trash", taskHandler.ListTrash)
 	protected.GET("/tasks/search", taskHandler.Search)
 	protected.GET("/tasks/:id", taskHandler.GetByID)
+
 	protected.PUT("/tasks/:id", taskHandler.Update)
+	protected.PATCH("/tasks/:id/restore", taskHandler.RestoreTask)
 	protected.DELETE("/tasks/:id", taskHandler.Delete)
 	protected.DELETE("/tasks/:id/hard", taskHandler.HardDeleteTask)
 	protected.PATCH("/tasks/:id/status", taskHandler.UpdateStatus)

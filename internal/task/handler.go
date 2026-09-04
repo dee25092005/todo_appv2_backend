@@ -218,3 +218,30 @@ func (h *Handler) HardDeleteTask(c echo.Context) error {
 	}
 	return c.NoContent(http.StatusNoContent)
 }
+
+func (h *Handler) ListTrash(c echo.Context) error {
+	userID := c.Get(domain.UserIDKey).(string)
+	var query PagingationQuery
+	if err := c.Bind(&query); err != nil {
+		return apperrors.BadRequest(err.Error())
+	}
+	res, err := h.service.ListTrash(c.Request().Context(), userID, query)
+	if err != nil {
+		return apperrors.Internal(err)
+	}
+	return c.JSON(http.StatusOK, res)
+
+}
+
+func (h *Handler) RestoreTask(c echo.Context) error {
+	userID := c.Get(domain.UserIDKey).(string)
+	taskID := c.Param("id")
+
+	if err := h.service.RestoreTask(c.Request().Context(), taskID, userID); err != nil {
+		if errors.Is(err, domain.ErrTaskNotFound) {
+			return apperrors.NotFound("task not found")
+		}
+		return apperrors.Internal(err)
+	}
+	return c.NoContent(http.StatusNoContent)
+}

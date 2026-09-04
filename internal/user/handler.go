@@ -21,19 +21,19 @@ func (h *Handler) Register(c echo.Context) error {
 	var req RegisterRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		return apperrors.BadRequest("invalid request payload")
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return err
+		return apperrors.BadRequest(err.Error())
 	}
 
 	res, err := h.service.Register(c.Request().Context(), req)
 	if err != nil {
 		if errors.Is(err, domain.ErrAlreadyExists) {
-			return c.JSON(http.StatusConflict, echo.Map{"error": err.Error()})
+			return apperrors.Conflict("user already exists")
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+		return apperrors.Internal(err)
 	}
 	return c.JSON(http.StatusCreated, res)
 }
@@ -42,11 +42,11 @@ func (h *Handler) Login(c echo.Context) error {
 	var req LoginRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		return apperrors.BadRequest("invalid request payload")
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return err
+		return apperrors.BadRequest(err.Error())
 	}
 
 	userAgent := c.Request().UserAgent()
@@ -55,7 +55,7 @@ func (h *Handler) Login(c echo.Context) error {
 	res, err := h.service.Login(c.Request().Context(), req, userAgent, clientIP)
 	if err != nil {
 		if errors.Is(err, domain.ErrUnauthorized) {
-			return apperrors.Unauthorized("unauthorized")
+			return apperrors.Unauthorized("invalid email or password")
 		}
 		return apperrors.Internal(err)
 	}
@@ -66,7 +66,7 @@ func (h *Handler) Login(c echo.Context) error {
 func (h *Handler) GetByID(c echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "id is required"})
+		return apperrors.BadRequest("id is required")
 	}
 	res, err := h.service.GetByID(c.Request().Context(), id)
 	if err != nil {
@@ -75,14 +75,13 @@ func (h *Handler) GetByID(c echo.Context) error {
 		}
 		return apperrors.Internal(err)
 	}
-
 	return c.JSON(http.StatusOK, res)
 }
 
 func (h *Handler) GetMe(c echo.Context) error {
-	userID, ok := c.Get("user_id").(string)
+	userID, ok := c.Get(domain.UserIDKey).(string)
 	if !ok || userID == "" {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "user_id is required"})
+		return apperrors.Unauthorized("unauthorized")
 	}
 
 	res, err := h.service.GetByID(c.Request().Context(), userID)
@@ -101,11 +100,11 @@ func (h *Handler) RefreshToken(c echo.Context) error {
 	var req RefreshTokenRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		return apperrors.BadRequest("invalid request payload")
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return err
+		return apperrors.BadRequest(err.Error())
 	}
 
 	userAgent := c.Request().UserAgent()
@@ -114,7 +113,7 @@ func (h *Handler) RefreshToken(c echo.Context) error {
 	res, err := h.service.RefreshToken(c.Request().Context(), req.RefreshToken, userAgent, clientIP)
 	if err != nil {
 		if errors.Is(err, domain.ErrUnauthorized) {
-			return apperrors.Unauthorized("unauthorized")
+			return apperrors.Unauthorized("invalid refresh token")
 		}
 		return apperrors.Internal(err)
 	}
@@ -125,11 +124,11 @@ func (h *Handler) Logout(c echo.Context) error {
 	var req RefreshTokenRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		return apperrors.BadRequest("invalid request payload")
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return err
+		return apperrors.BadRequest(err.Error())
 	}
 	if err := h.service.Logout(c.Request().Context(), req.RefreshToken); err != nil {
 		return apperrors.Internal(err)

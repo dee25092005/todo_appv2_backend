@@ -18,6 +18,9 @@ type Repository interface {
 	SoftDelete(ctx context.Context, id, userID string) error
 	HardDelete(ctx context.Context, id, userID string) error
 	Search(ctx context.Context, userID, query string, page, limit int) ([]*domain.Task, int, error)
+	ListTrash(ctx context.Context, userID string, page, limit int) ([]*domain.Task, error)
+	Restore(ctx context.Context, id, userID string) error
+	GetFileKeyForTask(ctx context.Context, taskID, userID string) ([]string, error)
 
 	UpdateStatus(ctx context.Context, id, userID string, isCompleted bool) error
 	CreateFile(ctx context.Context, file *domain.TaskFile) error
@@ -378,4 +381,89 @@ func (r *postgresRepository) HardDelete(ctx context.Context, id, userID string) 
 		return fmt.Errorf("failed to hard delete task: %w", err)
 	}
 	return nil
+}
+
+func (r *postgresRepository) ListTrash(ctx context.Context, userID string, limit, offset int) ([]*domain.Task, error) {
+	var total int
+	countQuery := `
+		SELECT COUNT(*) FROM tasks
+		WHERE user_id = $1 AND is_deleted = true
+	`
+	if err := r.db.QueryRow(ctx, countQuery, userID).Scan(&total); err != nil {
+		return nil, err
+	}
+
+	offset = (offset - 1) * limit
+
+	query := `
+		SELECT id, user_id, title,note, is_completed, is_deleted, created_at, updated_at
+		FROM tasks
+		WHERE user_id = $1 AND is_deleted = true
+		ORDER BY created_at DESC
+		LIMIT $2
+		OFFSET $3
+	`
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tasks []*domain.Task
+	for rows.Next() {
+		var t domain.Task
+		if err := rows.Scan(
+			&t.ID,
+			&t.UserID,
+			&t.Title,
+			&t.Note,
+			&t.IsCompleted,
+			&t.IsDeleted,
+			&t.CreatedAt,
+			&t.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, &t)
+	}
+	return tasks, nil
+}
+
+func (r *postgresRepository) Restore(ctx context.Context, id, userID string) error {
+	query := `
+		UPDATE tasks
+		SET is_deleted = false, updated_at = NOW()
+		WHERE id = $1 AND user_id = $2 AND is_deleted = true
+	`
+	tag, err := r.db.Exec(ctx, query, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to restore task: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrTaskNotFound
+	}
+
+	return nil
+}
+
+func (r *postgresRepository) GetFileKeyForTask(ctx context.Context, taskID, userID string) ([]string, error) {
+	query := `
+		SELECT f.file_key
+		FROM task_files f
+		JOIN tasks t ON f.task_id = t.id
+		WHERE t.id = $1 AND t.user_id = $2
+	`
+	rows, err := r.db.Query(ctx, query, taskID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var keys []string
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, err
+		}
+		keys = append(keys, key)
+	}
+	return keys, nil
 }

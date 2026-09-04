@@ -3,16 +3,16 @@ package http
 import (
 	"errors"
 	"strings"
+	"todo-backend/internal/domain"
 	"todo-backend/internal/user"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
-const UserIDKey = "user_id"
-
 func JWTMiddleware(jwtSecret string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
+
 		return func(c echo.Context) error {
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
@@ -37,7 +37,7 @@ func JWTMiddleware(jwtSecret string) echo.MiddlewareFunc {
 				return echo.ErrUnauthorized
 			}
 
-			c.Set(UserIDKey, claims.UserID)
+			c.Set(domain.UserIDKey, claims.UserID)
 
 			return next(c)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 	"todo-backend/internal/domain"
 	"todo-backend/pkg/storage"
 
@@ -18,6 +19,8 @@ type Service interface {
 	UpdateTask(ctx context.Context, id, userID string, req UpdateTaskRequest) (*TaskResponse, error)
 	DeleteTask(ctx context.Context, id, userID string) error
 	HardDeleteTask(ctx context.Context, id, userID string) error
+	ListTrash(ctx context.Context, userID string, query PagingationQuery) (*PaginatedTaskResponse, error)
+	RestoreTask(ctx context.Context, id, userID string) error
 
 	UpdateTaskStatus(ctx context.Context, id, userID string, isCompleted bool) error
 
@@ -210,9 +213,52 @@ func (s *TaskService) UpdateTaskStatus(ctx context.Context, id, userID string, i
 	return s.repo.Update(ctx, t)
 }
 
-func (s *TaskService) HardDeleteTask(ctx context.Context, id, userID string) error {
-	if id == "" || userID == "" {
-		return fmt.Errorf("id or userID is empty")
+func (s *TaskService) HardDeleteTask(ctx context.Context, taskID, userID string) error {
+	filekey, err := s.repo.GetFileKeyForTask(ctx, taskID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get file key: %w", err)
 	}
-	return s.repo.HardDelete(ctx, id, userID)
+
+	err = s.repo.HardDelete(ctx, taskID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to hard delete task: %w", err)
+	}
+	if len(filekey) > 0 {
+		go func(keys []string) {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			for _, key := range keys {
+				if err := s.storage.DeleteFile(bgCtx, key); err != nil {
+					fmt.Printf("async delete file failed: %v\n", err)
+				}
+			}
+		}(filekey)
+	}
+	return nil
+
+}
+
+func (s *TaskService) ListTrash(ctx context.Context, userID string, query PagingationQuery) (*PaginatedTaskResponse, error) {
+	query.SetDefault()
+	tasks, total, err := s.repo.ListByUserID(ctx, userID, query.Page, query.Limit)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*TaskResponse, 0, len(tasks))
+	for _, t := range tasks {
+		res = append(res, toTaskResponse(t))
+	}
+	totalPages := (total + query.Limit - 1) / query.Limit
+
+	return &PaginatedTaskResponse{
+		Data:       res,
+		TotalItems: total,
+		Page:       query.Page,
+		Limit:      query.Limit,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (s *TaskService) RestoreTask(ctx context.Context, id, userID string) error {
+	return s.repo.Restore(ctx, id, userID)
 }

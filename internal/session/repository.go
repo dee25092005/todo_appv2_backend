@@ -8,19 +8,32 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type DBTX interface {
+	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+}
 type SessionRepository interface {
 	Create(ctx context.Context, params *domain.CreateSessionParams) (*domain.Session, error)
 	GetByHash(ctx context.Context, hash string) (*domain.Session, error)
 	Revoke(ctx context.Context, id uuid.UUID) error
 	RevokeAllUserID(ctx context.Context, userID uuid.UUID) error
 	DeleteExpired(ctx context.Context) (int64, error)
+	WithTx(tx pgx.Tx) SessionRepository
 }
 
 type sessionRepository struct {
-	db *pgxpool.Pool
+	db DBTX
+}
+
+func (r *sessionRepository) WithTx(tx pgx.Tx) SessionRepository {
+	return &sessionRepository{
+		db: tx,
+	}
 }
 
 func NewSessionRepository(db *pgxpool.Pool) SessionRepository {

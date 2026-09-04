@@ -41,3 +41,7 @@ func Forbidden(msg string) *AppError {
 func Internal(err error) *AppError {
 	return &AppError{Code: http.StatusInternalServerError, Message: "internal server error", Err: err}
 }
+
+func Conflict(msg string) *AppError {
+	return &AppError{Code: http.StatusConflict, Message: msg}
+}
